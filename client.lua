@@ -1,7 +1,7 @@
 local uiOpen = false
 local locked = false
 
--- OKUMA RANGE AYARLARI
+-- RANGE AYARLARI
 local FRONT_RANGE = 35.0
 local REAR_RANGE  = 35.0
 
@@ -11,11 +11,27 @@ local lastRear  = { plate = "UNKNOWN", index = 0 }
 local lastVehicle = "UNKNOWN"
 
 ------------------------------------------------
+-- İZİNLİ ARAÇ KONTROLÜ
+------------------------------------------------
+local function IsAllowedVehicle(vehicle)
+    if vehicle == 0 then return false end
+
+    local model = GetEntityModel(vehicle)
+    local name = GetDisplayNameFromVehicleModel(model)
+    name = string.lower(name)
+
+    return Config.AllowedVehicles[name] == true
+end
+
+------------------------------------------------
 -- /plakaokuyucu
 ------------------------------------------------
 RegisterCommand("plakaokuyucu", function()
     local ped = PlayerPedId()
     if not IsPedInAnyVehicle(ped, false) then return end
+
+    local veh = GetVehiclePedIsIn(ped, false)
+    if not IsAllowedVehicle(veh) then return end
 
     uiOpen = not uiOpen
     SendNUIMessage({
@@ -29,7 +45,13 @@ end)
 CreateThread(function()
     while true do
         Wait(0)
+
         if uiOpen and IsControlJustPressed(0, 166) then -- F5
+            local ped = PlayerPedId()
+            local veh = GetVehiclePedIsIn(ped, false)
+
+            if not IsAllowedVehicle(veh) then return end
+
             locked = not locked
             SendNUIMessage({
                 action = "lock",
@@ -39,6 +61,9 @@ CreateThread(function()
     end
 end)
 
+------------------------------------------------
+-- ANA OKUMA THREAD
+------------------------------------------------
 CreateThread(function()
     while true do
         Wait(800)
@@ -46,9 +71,10 @@ CreateThread(function()
         if not uiOpen then goto skip end
 
         local ped = PlayerPedId()
+        local veh = GetVehiclePedIsIn(ped, false)
 
-        -- Araçtan inince kapat
-        if not IsPedInAnyVehicle(ped, false) then
+        -- Araçtan inince veya izinli araç değilse kapat
+        if veh == 0 or not IsAllowedVehicle(veh) then
             uiOpen = false
             SendNUIMessage({ action = "close" })
             goto skip
@@ -57,7 +83,7 @@ CreateThread(function()
         -- Kilitliyken okuma yapma
         if locked then goto skip end
 
-        -- ÖN / ARKA ARAÇLARI BUL
+        -- ÖN / ARKA ARAÇLAR
         local frontVeh = GetVehicleInFront(ped, FRONT_RANGE)
         local rearVeh  = GetVehicleInBack(ped, REAR_RANGE)
 
@@ -107,7 +133,6 @@ function GetVehicleInFront(ped, range)
     local _, hit, _, _, entity = GetShapeTestResult(ray)
 
     if hit == 1 and entity ~= 0 and IsEntityAVehicle(entity) then
-        -- LOS KONTROL (DUVAR / ENGEL ARKASI OKUMA ENGELİ)
         if HasEntityClearLosToEntity(ped, entity, 17) then
             return entity
         end
@@ -135,7 +160,6 @@ function GetVehicleInBack(ped, range)
     local _, hit, _, _, entity = GetShapeTestResult(ray)
 
     if hit == 1 and entity ~= 0 and IsEntityAVehicle(entity) then
-        -- LOS KONTROL
         if HasEntityClearLosToEntity(ped, entity, 17) then
             return entity
         end
