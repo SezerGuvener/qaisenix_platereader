@@ -1,6 +1,8 @@
 # qaisenix_platereader
 Optimized Plate Reader UI
 
+[Priview](https://streamable.com/48ikqo)
+
 # TR
 qaisenix_platereader, FiveM sunucuları için geliştirilmiş, tamamen client-side çalışan, düşük resmon değerine sahip gelişmiş bir plaka okuma sistemidir. Polis araçları başta olmak üzere araç içindeyken aktif olarak kullanılabilir ve oyuncunun önünde ve arkasında bulunan araçların plakalarını gerçekçi bir radar mantığıyla okur.
 
